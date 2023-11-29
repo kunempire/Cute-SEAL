@@ -1,4 +1,5 @@
 import tenseal as ts
+import numpy as np
 import os
 import random
 import time
@@ -27,10 +28,10 @@ print("Using device:", device)
 # Get image_path list
 image_list = [os.path.join(image_dir, image) for image in os.listdir(image_dir) if image.endswith('.png')]
 
-# recording test times
-test_encrypt_times = []
+# recording test times of every epoch
+test_encrypt_times =[]
 test_query_times = []
-
+test_decrypt_times = []
 for times in range(test_times):
     print("\033[94mTesting: {}/{}\033[0m".format(times+1, test_times))
     with open(log_file, 'a') as file:
@@ -93,6 +94,15 @@ for times in range(test_times):
     query_time = (time.perf_counter() - start_time)  # * 1e6
     average_query_time = query_time / batch_size
 
+    start_time = time.perf_counter()
+    with open("{}/encrypted_image_{}.pkl".format(encrypted_dir,0), "rb") as f:
+        encrypted_image = ts.ckks_vector_from(context, f.read())
+        
+    decrypted_vector = encrypted_image.decrypt()
+    decrypted_image = np.array(decrypted_vector).reshape((64, 64, 3)).astype(np.uint8)
+    # Calculate encryption time
+    decrypted_time = time.perf_counter() - start_time
+
     print("\033[92mTest{}/{} Result: ".format(times+1, test_times))
     print("Average Encryption Time: {:.4f} seconds / image".format(average_encryption_time))
     print("Average Query Time: {:.4f} seconds / image\033[0m".format(average_query_time))
@@ -103,9 +113,11 @@ for times in range(test_times):
 
     test_encrypt_times.append(average_encryption_time)
     test_query_times.append(average_query_time)
+    test_decrypt_times.append(decrypted_time)
 
 average_encryption_time = sum(test_encrypt_times) / len(test_encrypt_times)
 average_query_time = sum(test_query_times) / len(test_query_times)
+average_decryption_time = sum(test_decrypt_times) / len(test_decrypt_times)
 print("\033[91mFinally Result: ")
 print("Average Encryption Time: {:.4f} seconds / image".format(average_encryption_time))
 print("Average Query Time: {:.4f} seconds / image\033[0m".format(average_query_time))
@@ -114,3 +126,4 @@ with open(log_file, 'a') as file:
     file.write("Finally Result: ")
     file.write("Average Encryption Time: {:.4f} seconds / image\n".format(average_encryption_time))
     file.write("Average Query Time: {:.4f} seconds / image".format(average_query_time))
+    file.write("Average Decryption Time: {:.4f} seconds / image".format(average_decryption_time))

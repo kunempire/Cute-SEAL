@@ -1,5 +1,6 @@
 import tensorflow as tf
 import tenseal as ts
+import numpy as np
 import os
 import random
 import time
@@ -9,13 +10,13 @@ batch_size = 5
 test_times = 5 
 image_dir = 'data/original'
 encrypted_dir = 'data/encrypted'
-log_file = 'log/test-tensorflow-CKKS.log'
+log_file = 'log/test-tensorflow-BFV.log'
 # 变方案记得改下面的bfv/ckks_vector
 # CKKS
-context = ts.context(ts.SCHEME_TYPE.CKKS, poly_modulus_degree=8192*4, coeff_mod_bit_sizes=[60, 40, 40, 60])
-context.global_scale = 2**40
+# context = ts.context(ts.SCHEME_TYPE.CKKS, poly_modulus_degree=8192*4, coeff_mod_bit_sizes=[60, 40, 40, 60])
+# context.global_scale = 2**40
 # BFV
-# context = ts.context(ts.SCHEME_TYPE.BFV, poly_modulus_degree=8192*4, plain_modulus=786433)
+context = ts.context(ts.SCHEME_TYPE.BFV, poly_modulus_degree=8192*4, plain_modulus=786433)
 
 context.generate_galois_keys()
 
@@ -34,9 +35,10 @@ if len(physical_devices) > 1:
 # Get image_path list
 image_list = [os.path.join(image_dir, image) for image in os.listdir(image_dir) if image.endswith('.png')]
 
-# recording test times
+# recording test times of every epoch
 test_encrypt_times =[]
 test_query_times = []
+test_decrypt_times = []
 
 for times in range(test_times):
     print("\033[94mTesting: {}/{}\033[0m".format(times+1,test_times))
@@ -58,7 +60,7 @@ for times in range(test_times):
     # Encrypt
     encrypted_images = []
     for image in tqdm(images, desc="Encrypting images", unit="image"):
-        encrypted_vector = ts.ckks_vector(context, image.numpy().flatten().tolist())
+        encrypted_vector = ts.bfv_vector(context, image.numpy().flatten().tolist())
         encrypted_images.append(encrypted_vector)
 
     # Save encrypted_images to file
@@ -86,14 +88,14 @@ for times in range(test_times):
     query_image = tf.image.decode_jpeg(query_image, channels=3)
     query_image = tf.image.resize(query_image, [64, 64])
     # query_image = tf.image.convert_image_dtype(query_image, tf.float32)
-    encrypted_query_image = ts.ckks_vector(context, query_image.numpy().flatten().tolist())
+    encrypted_query_image = ts.bfv_vector(context, query_image.numpy().flatten().tolist())
 
     similarity_scores = []
 
     pbar = tqdm(total=len(encrypted_images), desc="Querying images", unit="image")
     for i in range(len(encrypted_images)):
         with open("{}/encrypted_image_{}.pkl".format(encrypted_dir,i), "rb") as f:
-            encrypted_image = ts.ckks_vector_from(context, f.read())
+            encrypted_image = ts.bfv_vector_from(context, f.read())
             dot_image = encrypted_query_image.dot(encrypted_image)
             similarity_score = dot_image.decrypt()[0]
             similarity_scores.append(similarity_score)
@@ -103,26 +105,39 @@ for times in range(test_times):
     query_time = (time.perf_counter() - start_time) # * 1e6
     average_query_time = query_time / batch_size
 
+    start_time = time.perf_counter()
+    with open("{}/encrypted_image_{}.pkl".format(encrypted_dir,0), "rb") as f:
+        encrypted_image = ts.bfv_vector_from(context, f.read())
+        
+    decrypted_vector = encrypted_image.decrypt()
+    decrypted_image = np.array(decrypted_vector).reshape((64, 64, 3)).astype(np.uint8)
+    # Calculate encryption time
+    decrypted_time = time.perf_counter() - start_time
+
     print("\033[92mTest{}/{} Result: \n".format(times+1,test_times))
     print("Average Encryption Time: {:.4f} seconds / image".format(average_encryption_time))
     print("Average Query Time: {:.4f} seconds / image\033[0m".format(average_query_time))
     with open(log_file, 'a') as file:
-        file.write("Test{}/{} Result: ".format(times+1,test_times))
+        file.write("Test{}/{} Result: \n".format(times+1,test_times))
         file.write("Average Encryption Time: {:.4f} seconds / image\n".format(average_encryption_time))
-        file.write("Average Query Time: {:.4f} seconds / image".format(average_query_time))
+        file.write("Average Query Time: {:.4f} seconds / image\n".format(average_query_time))
+        file.write("Average Decryption Time: {:.4f} seconds / image".format(decrypted_time))
 
     test_encrypt_times.append(average_encryption_time)
     test_query_times.append(average_query_time)
+    test_decrypt_times.append(decrypted_time)
     
 
 average_encryption_time = sum(test_encrypt_times) / len(test_encrypt_times)
 average_query_time = sum(test_query_times) / len(test_query_times)
+average_decryption_time = sum(test_decrypt_times) / len(test_decrypt_times)
 print("\033[91mFinally Result: ")
 print("Average Encryption Time: {:.4f} seconds / image".format(average_encryption_time))
 print("Average Query Time: {:.4f} seconds / image\033[0m".format(average_query_time))
 with open(log_file, 'a') as file:
     file.write("\n\n")
-    file.write("Finally Result: ")
+    file.write("Finally Result: \n")
     file.write("Average Encryption Time: {:.4f} seconds / image\n".format(average_encryption_time))
-    file.write("Average Query Time: {:.4f} seconds / image".format(average_query_time))
+    file.write("Average Query Time: {:.4f} seconds / image\n".format(average_query_time))
+    file.write("Average Decryption Time: {:.4f} seconds / image".format(average_decryption_time))
     

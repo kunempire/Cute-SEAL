@@ -53,9 +53,10 @@ int main(int argc, char** argv) {
       }
   }
 
+  # recording test times of every epoch
   vector<double> average_encryption;
   vector<double> average_query;
-
+  vector<double> average_decryption;
 
 	for(int i = 0; i < test_times ; ++i ){
     file.open(log_file, ios::app);
@@ -177,16 +178,32 @@ int main(int argc, char** argv) {
     // Calculate query time
     end_time = chrono::high_resolution_clock::now();
     auto query_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time).count();
+
+    // Decrypt
+    start_time = chrono::high_resolution_clock::now();
+    string filename = encrypted_dir + "/encrypted_image_" + to_string(0) + ".bin";
+    ifstream matched_file(filename, ios::binary);
+    if (matched_file.is_open()) {
+      Ciphertext encrypted_text;
+      encrypted_text.load(context, matched_file);
+      Plaintext decrypted_vector;
+      decryptor.decrypt(encrypted_text, decrypted_vector);
+    }
+
+    end_time = chrono::high_resolution_clock::now();
+    auto decryption_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time).count();
     
     // write log
     double average_encryption_time = static_cast<double>(encryption_time) / static_cast<double>(batch_size);
     double average_query_time = static_cast<double>(query_time) / static_cast<double>(batch_size);
+    double average_decryption_time = static_cast<double>(decryption_time);
     file.open(log_file, ios::app);
     if (file.is_open()) {
       file << fixed << setprecision(4);
       file << "Test" << i << "/" << test_times << " Result: \n";
       file << "Average Encryption Time: " << average_encryption_time / 1e6 << " seconds / image\n";
-      file << "Average Query Time: " << average_query_time / 1e6 << " seconds / image\n\n";
+      file << "Average Query Time: " << average_query_time / 1e6 << " seconds / image\n";
+      file << "Average Decryption Time: " << average_query_time / 1e6 << " seconds / image\n\n";
       file.close();
     } else {
       cerr << "Error: Unable to open file." << endl;
@@ -198,9 +215,11 @@ int main(int argc, char** argv) {
 
   double average_encryption_sum = 0.0;
   double average_query_sum = 0.0;
+  double average_decryption_sum = 0.0;
   for (int i = 0; i < average_encryption.size(); ++i){
     average_query_sum += average_query[i];
     average_encryption_sum += average_encryption[i];
+    average_decryption_sum += average_decryption[i];
   }
 
 
@@ -210,7 +229,8 @@ int main(int argc, char** argv) {
     file << fixed << setprecision(4);
     file << "Finally Result: \n";
     file << "Average Encryption Time: " << average_encryption_sum / test_times / 1e6<< " seconds / image\n";
-    file << "Average Query Time: " << average_query_sum / test_times  / 1e6 << " seconds / image\n\n";
+    file << "Average Query Time: " << average_query_sum / test_times  / 1e6 << " seconds / image\n";
+    file << "Average Decrypetion Time: " <<  average_decryption_sum / test_times  / 1e6 << " seconds / image\n\n";
     file.close();
   } else {
     cerr << "Error: Unable to open file." << endl;

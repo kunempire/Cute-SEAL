@@ -2,24 +2,36 @@ batch_size per test: 5
 total test times: 5
 
 Testing: 1/5
-Test1/5 Result: Average Encryption Time: 0.0574 seconds / image
-Average Query Time: 0.2149 seconds / image
+Test1/5 Result: 
+Average Encryption Time: 0.0565 seconds / image
+Average Query Time: 0.2131 seconds / image
+Average Decryption Time: 0.0111 seconds / image
 
 Testing: 2/5
-Test2/5 Result: Average Encryption Time: 0.0471 seconds / image
-Average Query Time: 0.2137 seconds / image
+Test2/5 Result: 
+Average Encryption Time: 0.0461 seconds / image
+Average Query Time: 0.2132 seconds / image
+Average Decryption Time: 0.0113 seconds / image
 
 Testing: 3/5
-Test3/5 Result: Average Encryption Time: 0.0474 seconds / image
-Average Query Time: 0.2142 seconds / image
+Test3/5 Result: 
+Average Encryption Time: 0.0466 seconds / image
+Average Query Time: 0.2105 seconds / image
+Average Decryption Time: 0.0113 seconds / image
 
 Testing: 4/5
-Test4/5 Result: Average Encryption Time: 0.0456 seconds / image
-Average Query Time: 0.2137 seconds / image
+Test4/5 Result: 
+Average Encryption Time: 0.0447 seconds / image
+Average Query Time: 0.2119 seconds / image
+Average Decryption Time: 0.0112 seconds / image
 
 Testing: 5/5
-Test5/5 Result: Average Encryption Time: 0.0487 seconds / image
-Average Query Time: 0.2129 seconds / image
+Test5/5 Result: 
+Average Encryption Time: 0.0427 seconds / image
+Average Query Time: 0.2103 seconds / image
+Average Decryption Time: 0.0112 seconds / image
 
-Finally Result: Average Encryption Time: 0.0493 seconds / image
-Average Query Time: 0.2139 seconds / image
+Finally Result: 
+Average Encryption Time: 0.0293 seconds / image
+Average Query Time: 0.2118 seconds / image
+Average Decryption Time: 0.0112 seconds / image
